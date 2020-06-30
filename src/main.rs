@@ -29,11 +29,9 @@ impl Node {
     }
 
     fn create_child(&mut self, name: String, depth: u32) -> &mut Self {
-        if !self.children.contains_key(&name) {
-            let node = Self::new(name.clone(), depth);
-            self.children.insert(name.clone(), node);
-        }
-        self.children.get_mut(&name).unwrap()
+        self.children
+            .entry(name.clone())
+            .or_insert_with(|| Self::new(name.clone(), depth))
     }
 }
 
@@ -50,7 +48,7 @@ fn main() {
     let file = BufReader::new(file);
 
     let mut root = Node::new(String::from("ROOT"), 0);
-    let mut node_stack: Vec<&mut Node> = vec![&mut root];
+    let mut node_stack = vec![&mut root];
 
     let parser = EventReader::new(file);
     let mut depth = 0;
@@ -61,10 +59,12 @@ fn main() {
                     .last_mut()
                     .expect("Root is missing. This should not happen")
                     .create_child(name.local_name, depth as u32);
+
                 node_stack.push(next_node);
+
                 depth += 1;
             }
-            Ok(XmlEvent::EndElement { name }) => {
+            Ok(XmlEvent::EndElement { .. }) => {
                 if depth > 1 {
                     depth -= 1;
                     node_stack.pop();
