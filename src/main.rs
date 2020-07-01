@@ -28,7 +28,7 @@ impl Node {
         }
     }
 
-    fn create_child(&mut self, name: String, depth: u32) -> &mut Self {
+    fn find_or_create_child(&mut self, name: String, depth: u32) -> &mut Self {
         self.children
             .entry(name.clone())
             .or_insert_with(|| Self::new(name.clone(), depth))
@@ -55,12 +55,13 @@ fn main() {
     for e in parser {
         match e {
             Ok(XmlEvent::StartElement { name, .. }) => {
-                let next_node = node_stack
+                let parent = node_stack
                     .last_mut()
-                    .expect("Root is missing. This should not happen")
-                    .create_child(name.local_name, depth as u32);
+                    .expect("Root is missing. This should not happen");
 
-                node_stack.push(next_node);
+                let child = parent.find_or_create_child(name.local_name, depth as u32);
+
+                node_stack.push(child);
 
                 depth += 1;
             }
