@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
@@ -16,7 +17,7 @@ fn indent(size: usize) -> String {
 struct Node {
     name: String,
     depth: u32,
-    children: HashMap<String, Self>,
+    children: HashMap<String, RefCell<Self>>,
 }
 
 impl Node {
@@ -28,10 +29,10 @@ impl Node {
         }
     }
 
-    fn find_or_create_child(&mut self, name: String, depth: u32) -> &mut Self {
+    fn find_or_create_child(&mut self, name: String, depth: u32) -> &RefCell<Self> {
         self.children
             .entry(name.clone())
-            .or_insert_with(|| Self::new(name.clone(), depth))
+            .or_insert_with(|| RefCell::new(Self::new(name.clone(), depth)))
     }
 }
 
@@ -47,28 +48,30 @@ fn main() {
     let file = File::open("sitemap.xml").unwrap();
     let file = BufReader::new(file);
 
-    let mut root = Node::new(String::from("ROOT"), 0);
-    let mut node_stack = vec![&mut root];
+    let root = RefCell::new(Node::new(String::from("ROOT"), 0));
+    let node_stack = RefCell::new(vec![&root]);
 
     let parser = EventReader::new(file);
     let mut depth = 0;
     for e in parser {
         match e {
             Ok(XmlEvent::StartElement { name, .. }) => {
-                let parent = node_stack
-                    .last_mut()
-                    .expect("Root is missing. This should not happen");
+                let mut stack = node_stack.borrow_mut();
+                let mut parent = stack
+                    .last()
+                    .expect("Root is missing. This should not happen")
+                    .borrow_mut();
 
                 let child = parent.find_or_create_child(name.local_name, depth as u32);
 
-                node_stack.push(child);
+                stack.push(child);
 
                 depth += 1;
             }
             Ok(XmlEvent::EndElement { .. }) => {
                 if depth > 1 {
                     depth -= 1;
-                    node_stack.pop();
+                    node_stack.borrow_mut().pop();
                 }
             }
             Err(e) => {
@@ -78,5 +81,8 @@ fn main() {
             _ => {}
         }
     }
-    println!("{:#?}", node_stack.pop().expect("Node stack is empty"));
+    println!(
+        "{:#?}",
+        node_stack.borrow_mut().pop().expect("Node stack is empty")
+    );
 }
