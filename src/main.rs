@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
-use std::rc::Weak;
 use std::{io::BufReader, rc::Rc};
 
 use env_logger;
@@ -57,7 +56,6 @@ where
 #[derive(Debug)]
 struct Node {
     children: RefCell<HashMap<String, Rc<Self>>>,
-    parent: Option<Weak<Self>>,
 }
 
 impl PartialEq for Node {
@@ -105,14 +103,20 @@ where
 {
     let root = Rc::new(Node {
         children: RefCell::new(HashMap::new()),
-        parent: None,
     });
-    let mut node = root.clone();
+    let stack = RefCell::new(vec![Rc::downgrade(&root)]);
 
     for e in source {
         match e {
             ParseEvent::Start(name) => {
                 // Create a new child if it doesn't exist
+                let node = stack
+                    .borrow()
+                    .last()
+                    .expect("Stack is empty!")
+                    .upgrade()
+                    .expect("Can't upgrade node ref");
+
                 let child = node
                     .children
                     .borrow_mut()
@@ -120,12 +124,11 @@ where
                     .or_insert_with(|| {
                         Rc::new(Node {
                             children: RefCell::new(HashMap::new()),
-                            parent: Some(Rc::downgrade(&node)),
                         })
                     })
-                    .clone(); // Copy the Rc
+                    .clone(); // Copy the Rc!
 
-                node = child;
+                stack.borrow_mut().push(Rc::downgrade(&child));
 
                 debug!(
                     "> Entering node: {}, ref count: {} strong, {} weak",
@@ -135,14 +138,19 @@ where
                 );
             }
             ParseEvent::End(name) => {
+                let node = stack
+                    .borrow_mut()
+                    .pop()
+                    .expect("Stack is empty!")
+                    .upgrade()
+                    .unwrap();
+
                 debug!(
                     "< Exiting node {} ref count: {} strong, {} weak",
                     name,
                     Rc::strong_count(&node),
                     Rc::weak_count(&node)
                 );
-
-                node = node.parent.as_ref().unwrap().upgrade().unwrap();
             }
         }
     }
@@ -176,7 +184,6 @@ mod test {
                     .map(|(k, v)| (k.to_string(), v.clone()))
                     .collect(),
             ),
-            parent: None,
         })
     }
 
