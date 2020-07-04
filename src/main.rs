@@ -104,18 +104,13 @@ where
     let root = Rc::new(Node {
         children: RefCell::new(HashMap::new()),
     });
-    let mut stack = vec![Rc::downgrade(&root)];
+    let mut stack = vec![root.clone()];
 
     for e in source {
         match e {
             ParseEvent::Start(name) => {
                 // Create a new child if it doesn't exist
-                let node = stack
-                    .last()
-                    .expect("Stack is empty!")
-                    .upgrade()
-                    .expect("Can't upgrade node ref");
-
+                let node = stack.last().expect("Stack is empty!");
                 let child = node
                     .children
                     .borrow_mut()
@@ -127,17 +122,17 @@ where
                     })
                     .clone(); // Copy the Rc!
 
-                stack.push(Rc::downgrade(&child));
-
                 debug!(
                     "> Entering node: {}, ref count: {} strong, {} weak",
                     name,
                     Rc::strong_count(&node),
                     Rc::weak_count(&node)
                 );
+
+                stack.push(child);
             }
             ParseEvent::End(name) => {
-                let node = stack.pop().expect("Stack is empty!").upgrade().unwrap();
+                let node = stack.pop().expect("Stack is empty!");
 
                 debug!(
                     "< Exiting node {} ref count: {} strong, {} weak",
