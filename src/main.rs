@@ -7,6 +7,7 @@ enum ParseEvent {
     Start(String),
     End(String),
 }
+
 struct EventSource<T>(EventReader<T>)
 where
     T: std::io::Read;
@@ -50,44 +51,6 @@ where
 #[derive(Debug)]
 struct Node {
     children: RefCell<HashMap<String, Rc<Self>>>,
-}
-
-impl PartialEq for Node {
-    fn eq(&self, other: &Self) -> bool {
-        self.children == other.children
-    }
-}
-
-impl fmt::Display for Node {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.print(0))
-    }
-}
-
-// for Display
-impl Node {
-    fn print(&self, depth: usize) -> String {
-        let mut out = "".to_string();
-
-        for (name, node) in self.children.borrow().iter() {
-            let indent = "  ".repeat(depth);
-
-            if node.children.borrow().len() < 1 {
-                out.push_str(&format!("{}<{} />\n", indent, name))
-            } else {
-                out.push_str(&format!(
-                    "{}<{}>\n{}{}</{}>\n",
-                    indent,
-                    name,
-                    node.print(depth + 1),
-                    indent,
-                    name
-                ));
-            }
-        }
-
-        out
-    }
 }
 
 // Main implementation of the thin parsing logic
@@ -152,6 +115,38 @@ fn main() {
     println!("{}", tree);
 }
 
+impl fmt::Display for Node {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.print(0))
+    }
+}
+
+// for Display
+impl Node {
+    fn print(&self, depth: usize) -> String {
+        let mut out = "".to_string();
+
+        for (name, node) in self.children.borrow().iter() {
+            let indent = "  ".repeat(depth);
+
+            if node.children.borrow().len() < 1 {
+                out.push_str(&format!("{}<{} />\n", indent, name))
+            } else {
+                out.push_str(&format!(
+                    "{}<{}>\n{}{}</{}>\n",
+                    indent,
+                    name,
+                    node.print(depth + 1),
+                    indent,
+                    name
+                ));
+            }
+        }
+
+        out
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -166,6 +161,12 @@ mod test {
                     .collect(),
             ),
         })
+    }
+
+    impl PartialEq for Node {
+        fn eq(&self, other: &Self) -> bool {
+            self.children == other.children
+        }
     }
 
     #[test]
