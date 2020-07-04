@@ -120,13 +120,12 @@ where
                             children: RefCell::new(HashMap::new()),
                         })
                     })
-                    .clone(); // Copy the Rc!
+                    .clone(); // Copy the Rc to allow node and stack borrows to be dropped
 
                 debug!(
-                    "> Entering node: {}, ref count: {} strong, {} weak",
+                    "> Entering node: {}, ref count: {}",
                     name,
                     Rc::strong_count(&node),
-                    Rc::weak_count(&node)
                 );
 
                 stack.push(child);
@@ -135,10 +134,9 @@ where
                 let node = stack.pop().expect("Stack is empty!");
 
                 debug!(
-                    "< Exiting node {} ref count: {} strong, {} weak",
+                    "< Exiting node {} ref count: {}",
                     name,
                     Rc::strong_count(&node),
-                    Rc::weak_count(&node)
                 );
             }
         }
