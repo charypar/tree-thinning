@@ -1,12 +1,12 @@
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::fmt;
-use std::fs::File;
-use std::rc::Weak;
-use std::{io::BufReader, rc::Rc};
-
-use env_logger;
 use log::debug;
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    fmt,
+    fs::File,
+    io::BufReader,
+    rc::{Rc, Weak},
+};
 use xml::reader::{EventReader, XmlEvent};
 
 #[derive(Debug)]
@@ -98,7 +98,7 @@ impl Node {
     }
 }
 
-// Main immplementation of the thin parsing logic
+// Main implementation of the thin parsing logic
 fn parse<T>(source: &mut T) -> Rc<Node>
 where
     T: Iterator<Item = ParseEvent>,
