@@ -1,5 +1,5 @@
 [package]
-name = "RomanRust"
+name = "roman_rust"
 version = "0.1.0"
 authors = ["Viktor Charypar <charypar@gmail.com>"]
 edition = "2018"
@@ -8,4 +8,8 @@ edition = "2018"
 
 [dependencies]
 xml-rs = "0.8"
+log = "0.4.8"
+env_logger = "0.7.1"
 
+[dev_dependencies]
+maplit = "1.0.2"
